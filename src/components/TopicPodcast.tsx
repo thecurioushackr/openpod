@@ -4,16 +4,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Play } from "lucide-react";
+import { Loader2, Play, Download } from "lucide-react";
 import { io } from "socket.io-client";
 import { Card } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export function TopicPodcast() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [audioUrl, setAudioUrl] = useState("");
-  const [, setTranscript] = useState("");
+  const [transcript, setTranscript] = useState("");
   const [topic, setTopic] = useState("");
   const { toast } = useToast();
 
@@ -67,6 +73,17 @@ export function TopicPodcast() {
         setProgress(data.progress);
         setStatusMessage(data.message);
       });
+
+      socket.on(
+        "complete",
+        (data: { audioUrl: string; transcript: string }) => {
+          console.log("Podcast generation complete:", data);
+          setAudioUrl(data.audioUrl);
+          setTranscript(data.transcript);
+          socket.disconnect();
+          setIsGenerating(false);
+        }
+      );
     } catch (error: any) {
       toast({
         title: "Error",
@@ -115,12 +132,40 @@ export function TopicPodcast() {
       )}
 
       {audioUrl && (
-        <div className="space-y-2">
-          <Label>Generated Topic Podcast</Label>
-          <audio controls className="w-full">
-            <source src={audioUrl} type="audio/mpeg" />
-            Your browser does not support the audio element.
-          </audio>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Generated Topic Podcast</Label>
+            <audio controls className="w-full">
+              <source src={audioUrl} type="audio/mpeg" />
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+
+          <div className="flex space-x-2">
+            <Button
+              className="flex-1"
+              onClick={() => window.open(audioUrl)}
+              variant="secondary"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
+          </div>
+
+          {transcript && (
+            <Accordion type="single" collapsible>
+              <AccordionItem value="transcript">
+                <AccordionTrigger>View Transcript</AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-secondary/50 p-4 rounded-md">
+                    <pre className="whitespace-pre-wrap text-sm">
+                      {transcript}
+                    </pre>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
         </div>
       )}
 
