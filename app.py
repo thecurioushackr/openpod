@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import os
 from podcastfy.client import generate_podcast
 import shutil
+from contextlib import contextmanager
+import tempfile
 
 # Load environment variables
 load_dotenv()
@@ -34,86 +36,182 @@ else:
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-def create_callback(sid):
-    """Create a callback dictionary for websocket updates"""
-    def on_status(message):
-        emit('status', {'message': message}, room=sid)
+@contextmanager
+def temporary_env(temp_env):
+    """Temporarily set environment variables and restore them afterwards."""
+    original_env = dict(os.environ)
+    os.environ.update(temp_env)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(original_env)
 
-    def on_progress(progress):
-        emit('progress', {'progress': progress}, room=sid)
+@contextmanager
+def temporary_env_file(env_vars):
+    """Creates a temporary .env file with the provided variables."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as temp_env:
+        # Write variables to temp file
+        for key, value in env_vars.items():
+            temp_env.write(f"{key}={value}\n")
+        temp_env.flush()
 
-    def on_error(error):
-        emit('error', {'message': str(error)}, room=sid)
+        # Store original env file path if it exists
+        original_env_path = os.getenv('ENV_FILE')
 
-    return {
-        'on_status': on_status,
-        'on_progress': on_progress,
-        'on_error': on_error
-    }
+        try:
+            # Set the ENV_FILE environment variable to point to our temp file
+            os.environ['ENV_FILE'] = temp_env.name
+            yield
+        finally:
+            # Restore original ENV_FILE if it existed
+            if original_env_path:
+                os.environ['ENV_FILE'] = original_env_path
+            else:
+                os.environ.pop('ENV_FILE', None)
+            # Clean up temp file
+            os.unlink(temp_env.name)
+
+@socketio.on('connect')
+def handle_connect():
+    print("\n=== Socket Connected ===")
+    print(f"Client ID: {request.sid}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print("\n=== Socket Disconnected ===")
+    print(f"Client ID: {request.sid}")
 
 @socketio.on('generate_podcast')
 def handle_generate_podcast(data):
-    """Handle podcast generation request with websocket updates"""
     try:
-        # Set API keys from data
-        os.environ['GEMINI_API_KEY'] = data.get('gemini_key', '')
-        os.environ['OPENAI_API_KEY'] = data.get('openai_key', '')
-        os.environ['ELEVENLABS_API_KEY'] = data.get('elevenlabs_key', '')
+        print("\n=== Starting Podcast Generation ===")
+        emit('status', "Starting podcast generation...")
 
-        callback = create_callback(request.sid)
+        # Get the API key
+        api_key = data.get('google_key')
+        if not api_key:
+            raise ValueError("Missing Google API key")
 
-        if data.get('mode') == 'news':
-            # Handle news podcast generation
-            result = generate_podcast(
-                topic=data.get('news_topic'),
-                tts_model=data.get('tts_model', 'gemini'),
-                callback=callback
-            )
-        else:
-            # Handle custom podcast generation
-            conversation_config = {
-                'word_count': int(data.get('word_count', 4000)),
-                'creativity': float(data.get('creativity', 0.7)),
-                'conversation_style': data.get('conversation_style', []),
-                'roles_person1': data.get('roles_person1', 'Interviewer'),
-                'roles_person2': data.get('roles_person2', 'Subject matter expert'),
-                'dialogue_structure': data.get('dialogue_structure', []),
-                'podcast_name': data.get('podcast_name'),
-                'podcast_tagline': data.get('podcast_tagline'),
-                'output_language': 'English',
-                'user_instructions': data.get('user_instructions'),
-                'engagement_techniques': data.get('engagement_techniques', []),
-                'text_to_speech': {
-                    'temp_audio_dir': TEMP_DIR,
-                    'ending_message': "Thank you for listening to this episode.",
-                    'default_tts_model': data.get('tts_model', 'gemini'),
-                    'audio_format': 'mp3'
+        # Create env vars based on the documentation
+        env_vars = {
+            'GEMINI_API_KEY': api_key,  # For content generation
+            'GOOGLE_API_KEY': api_key,   # For TTS if using Google
+            'OPENAI_API_KEY': data.get('openai_key', ''),
+            'ELEVENLABS_API_KEY': data.get('elevenlabs_key', '')
+        }
+
+        # Debug: Print environment before
+        print("\nEnvironment before temp file:")
+        for key in ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'ENV_FILE']:
+            print(f"{key}: {os.environ.get(key, 'Not set')}")
+
+        # Use the temporary environment file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as temp_env:
+            # Write variables to temp file
+            for key, value in env_vars.items():
+                if value:  # Only write non-empty values
+                    temp_env.write(f"{key}={value}\n")
+            temp_env.flush()
+
+            # Debug: Print .env file contents
+            print(f"\nCreated .env file at {temp_env.name}")
+            print("Contents:")
+            with open(temp_env.name, 'r') as f:
+                print(f.read())
+
+            # Store original env file path
+            original_env_path = os.getenv('ENV_FILE')
+
+            try:
+                # Set the ENV_FILE environment variable to point to our temp file
+                os.environ['ENV_FILE'] = temp_env.name
+
+                # Also set the variables directly in environment
+                for key, value in env_vars.items():
+                    if value:
+                        os.environ[key] = value
+
+                # Debug: Print environment after
+                print("\nEnvironment after setup:")
+                for key in ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'ENV_FILE']:
+                    print(f"{key}: {os.environ.get(key, 'Not set')}")
+
+                # Force reload of environment
+                from dotenv import load_dotenv
+                load_dotenv(temp_env.name, override=True)
+
+                print(f"\nTTS Model Selected: {data.get('tts_model', 'google')}")
+                print(f"Google API Key present: {bool(api_key)}")
+                print(f"First 5 chars of key: {api_key[:5]}")
+
+                conversation_config = {
+                    'word_count': int(data.get('word_count', 4000)),
+                    'creativity': float(data.get('creativity', 0.7)),
+                    'conversation_style': data.get('conversation_style', []),
+                    'roles_person1': data.get('roles_person1', 'Interviewer'),
+                    'roles_person2': data.get('roles_person2', 'Subject matter expert'),
+                    'dialogue_structure': data.get('dialogue_structure', []),
+                    'podcast_name': data.get('name'),
+                    'podcast_tagline': data.get('tagline'),
+                    'output_language': 'English',
+                    'user_instructions': data.get('user_instructions'),
+                    'engagement_techniques': data.get('engagement_techniques', []),
+                    'text_to_speech': {
+                        'temp_audio_dir': TEMP_DIR,
+                        'ending_message': "Thank you for listening to this episode.",
+                        'default_tts_model': data.get('tts_model', 'google'),
+                        'audio_format': 'mp3'
+                    }
                 }
-            }
 
-            result = generate_podcast(
-                urls=data.get('urls', '').split(','),
-                conversation_config=conversation_config,
-                tts_model=data.get('tts_model', 'gemini'),
-                callback=callback
-            )
+                emit('status', "Generating podcast content...")
+                emit('progress', {'progress': 30, 'message': 'Generating podcast content...'})
 
-        # Handle the result
-        filename = f"podcast_{os.urandom(8).hex()}.mp3"
-        output_path = os.path.join(TEMP_DIR, filename)
+                result = generate_podcast(
+                    urls=data.get('urls', []),
+                    conversation_config=conversation_config,
+                    tts_model=data.get('tts_model', 'google')
+                )
 
-        if isinstance(result, str) and os.path.isfile(result):
-            shutil.copy2(result, output_path)
-        elif hasattr(result, 'audio_path'):
-            shutil.copy2(result.audio_path, output_path)
+                emit('status', "Processing audio...")
+                emit('progress', {'progress': 90, 'message': 'Processing final audio...'})
 
-        # Send completion with audio URL and transcript
-        emit('complete', {
-            'audioUrl': f'/audio/{filename}',
-            'transcript': result.transcript if hasattr(result, 'transcript') else None
-        }, room=request.sid)
+                # Handle the result
+                if isinstance(result, str) and os.path.isfile(result):
+                    filename = f"podcast_{os.urandom(8).hex()}.mp3"
+                    output_path = os.path.join(TEMP_DIR, filename)
+                    shutil.copy2(result, output_path)
+                    emit('progress', {'progress': 100, 'message': 'Podcast generation complete!'})
+                    emit('complete', {
+                        'audioUrl': f'/audio/{filename}',
+                        'transcript': None
+                    }, room=request.sid)
+                elif hasattr(result, 'audio_path'):
+                    filename = f"podcast_{os.urandom(8).hex()}.mp3"
+                    output_path = os.path.join(TEMP_DIR, filename)
+                    shutil.copy2(result.audio_path, output_path)
+                    emit('complete', {
+                        'audioUrl': f'/audio/{filename}',
+                        'transcript': result.details if hasattr(result, 'details') else None
+                    }, room=request.sid)
+                else:
+                    raise Exception('Invalid result format')
+
+            finally:
+                # Restore original ENV_FILE
+                if original_env_path:
+                    os.environ['ENV_FILE'] = original_env_path
+                else:
+                    os.environ.pop('ENV_FILE', None)
+                # Clean up temp file
+                os.unlink(temp_env.name)
 
     except Exception as e:
+        print(f"\nError in handle_generate_podcast: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         emit('error', {'message': str(e)}, room=request.sid)
 
 @app.route('/audio/<path:filename>')
