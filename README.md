@@ -1,6 +1,6 @@
 ## AI Podcast Generator
 
-A modern web application that generates AI-powered podcasts from web content using React, Flask, and WebSockets.
+A modern web application that automatically generates engaging podcast conversations from URLs or news topics using AI. Powered by [podcastfy.ai](http://podcastfy.ai).
 
 ### Features
 
@@ -13,17 +13,19 @@ A modern web application that generates AI-powered podcasts from web content usi
 ### Prerequisites
 
 - Node.js 18+
-- Python 3.8+
+- Python 3.11
 - pip
+- bun
 - Poetry (optional but recommended)
+- Fly.io CLI
 
 ### Development Setup
 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/ai-podcast-generator
-cd ai-podcast-generator
+git clone https://github.com/giulioco/openpod
+cd openpod
 ```
 
 2. Install frontend dependencies:
@@ -38,26 +40,10 @@ bun install
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the root directory:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key
-OPENAI_API_KEY=your_openai_api_key
-ELEVENLABS_API_KEY=your_elevenlabs_api_key
-```
-
-5. Start the development servers:
-
-In one terminal, start the frontend:
+4. Start the development servers:
 
 ```bash
 bun dev
-```
-
-In another terminal, start the backend:
-
-```bash
-python app.py
 ```
 
 The application will be available at `http://localhost:5173`
@@ -82,15 +68,7 @@ fly auth login
 fly launch
 ```
 
-4. Add your secrets:
-
-```bash
-fly secrets set GEMINI_API_KEY=your_gemini_api_key
-fly secrets set OPENAI_API_KEY=your_openai_api_key
-fly secrets set ELEVENLABS_API_KEY=your_elevenlabs_api_key
-```
-
-5. Deploy the application:
+4. . Deploy the application:
 
 ```bash
 fly deploy
@@ -108,12 +86,6 @@ fly deploy
 ├── requirements.txt     # Python dependencies
 └── fly.toml            # Fly.io configuration
 ```
-
-### Environment Variables
-
-- `GEMINI_API_KEY`: Google Gemini API key
-- `OPENAI_API_KEY`: OpenAI API key
-- `ELEVENLABS_API_KEY`: ElevenLabs API key
 
 ### Contributing
 

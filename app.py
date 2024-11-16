@@ -196,6 +196,80 @@ def handle_generate_podcast(data):
         print(f"Traceback: {traceback.format_exc()}")
         emit('error', {'message': str(e)}, room=request.sid)
 
+@socketio.on('generate_news_podcast')
+def handle_generate_news_podcast(data):
+    try:
+        print("\n=== Starting News Podcast Generation ===")
+        emit('status', "Starting news podcast generation...")
+
+        # Get the API key and topics
+        api_key = data.get('google_key')
+        topics = data.get('topics')
+
+        if not api_key:
+            raise ValueError("Missing Google API key")
+        if not topics:
+            raise ValueError("No topics provided")
+
+        print(f"Topics: {topics}")
+
+        # Set environment variables
+        os.environ['GOOGLE_API_KEY'] = api_key
+        os.environ['GEMINI_API_KEY'] = api_key
+
+        # Test the API key
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-pro')
+            response = model.generate_content("Test message")
+            print("\n=== API Test Successful ===")
+        except Exception as e:
+            print("\n=== API Test Failed ===")
+            print(f"Error: {str(e)}")
+            raise
+
+        emit('status', "Generating news podcast...")
+        emit('progress', {'progress': 30, 'message': 'Generating content...'})
+
+        # Use a different function for news podcasts
+        result = generate_podcast(
+            topic=topics,
+            tts_model='gemini',
+            api_key_label='GEMINI_API_KEY'
+        )
+
+        emit('status', "Processing audio...")
+        emit('progress', {'progress': 90, 'message': 'Processing final audio...'})
+
+        # Handle the result
+        if isinstance(result, str) and os.path.isfile(result):
+            filename = f"news_podcast_{os.urandom(8).hex()}.mp3"
+            output_path = os.path.join(TEMP_DIR, filename)
+            shutil.copy2(result, output_path)
+            emit('progress', {'progress': 100, 'message': 'Podcast generation complete!'})
+            emit('complete', {
+                'audioUrl': f'/audio/{filename}',
+                'transcript': None
+            }, room=request.sid)
+        elif hasattr(result, 'audio_path'):
+            filename = f"news_podcast_{os.urandom(8).hex()}.mp3"
+            output_path = os.path.join(TEMP_DIR, filename)
+            shutil.copy2(result.audio_path, output_path)
+            emit('complete', {
+                'audioUrl': f'/audio/{filename}',
+                'transcript': result.details if hasattr(result, 'details') else None
+            }, room=request.sid)
+        else:
+            raise Exception('Invalid result format')
+
+    except Exception as e:
+        print(f"\nError in handle_generate_news_podcast: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        emit('error', {'message': str(e)}, room=request.sid)
+
 @app.route('/audio/<path:filename>')
 def serve_audio(filename):
     """Serve generated audio files"""
