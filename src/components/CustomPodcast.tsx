@@ -260,8 +260,16 @@ export function CustomPodcast() {
         socket.emit("generate_podcast", payload);
       });
 
+      socket.on("progress", (data: { progress: number; message: string }) => {
+        setProgress(data.progress);
+        setStatusMessage(data.message);
+      });
+
+      socket.on("status", (message: string) => {
+        setStatusMessage(message);
+      });
+
       socket.on("error", (error: { message: string }) => {
-        console.error("Socket error:", error);
         toast({
           title: "Error",
           description: error.message,

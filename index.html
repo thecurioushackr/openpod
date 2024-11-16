@@ -4,10 +4,69 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Podcast Generator</title>
+    <title>OpenPod</title>
+    <style>
+      .shimmer {
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.2) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+      }
+
+      .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #020817;
+        color: #fff;
+      }
+
+      .loading-card {
+        background-color: #1e293b;
+        border-radius: 8px;
+        padding: 2rem;
+        width: 300px;
+        text-align: center;
+      }
+
+      .loading-title {
+        height: 24px;
+        width: 150px;
+        margin: 0 auto 1rem;
+        border-radius: 4px;
+      }
+
+      .loading-text {
+        height: 16px;
+        width: 200px;
+        margin: 0 auto;
+        border-radius: 4px;
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root">Loading...</div>
+    <div id="root">
+      <div class="loading-container">
+        <div class="loading-card">
+          <div class="loading-title shimmer"></div>
+          <div class="loading-text shimmer"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
