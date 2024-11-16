@@ -12,7 +12,7 @@ export function NewsPodcast() {
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [audioUrl, setAudioUrl] = useState("");
-  const [transcript, setTranscript] = useState("");
+  const [, setTranscript] = useState("");
   const [topics, setTopics] = useState("");
   const { toast } = useToast();
 

@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 data/*
 *.env
+static/*
+tsconfig.app.tsbuildinfo
+tsconfig.node.tsbuildinfo

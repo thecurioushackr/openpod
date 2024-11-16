@@ -4,8 +4,6 @@ import { CustomPodcast } from "@/components/CustomPodcast";
 import { APIKeys } from "@/components/APIKeys";
 import { NewsPodcast } from "@/components/NewsPodcast";
 import { Toaster } from "@/components/ui/toaster";
-import { Github } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("custom");

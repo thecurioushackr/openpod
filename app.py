@@ -276,5 +276,9 @@ def serve_audio(filename):
     return send_file(os.path.join(TEMP_DIR, filename))
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)
+    port = int(os.getenv('PORT', 8080))
+    socketio.run(app,
+                 host='0.0.0.0',
+                 port=port,
+                 debug=False,  # Set to False in production
+                 allow_unsafe_werkzeug=True)

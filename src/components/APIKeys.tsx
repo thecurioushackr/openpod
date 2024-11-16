@@ -87,10 +87,8 @@ const API_KEY_INSTRUCTIONS = {
 };
 
 function InstructionsDialog({
-  type,
   instructions,
 }: {
-  type: string;
   instructions: (typeof API_KEY_INSTRUCTIONS)[keyof typeof API_KEY_INSTRUCTIONS];
 }) {
   return (
@@ -190,7 +188,6 @@ export function APIKeys() {
                 API Key
               </Label>
               <InstructionsDialog
-                type={type}
                 instructions={
                   API_KEY_INSTRUCTIONS[
                     type as keyof typeof API_KEY_INSTRUCTIONS
