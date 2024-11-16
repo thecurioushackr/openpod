@@ -150,11 +150,8 @@ export function CustomPodcast() {
     localStorage.setItem("podcast_urls", JSON.stringify(parsedUrls));
   }, [parsedUrls]);
 
-  const onPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedText = e.clipboardData.getData("text");
-    const urls = extractUrls(pastedText);
-
+  const handleUrlInput = (text: string) => {
+    const urls = extractUrls(text);
     if (urls.length > 0) {
       setParsedUrls((prev) => [...new Set([...prev, ...urls])]);
       form.setValue("urls", "", { shouldValidate: true });
@@ -162,6 +159,20 @@ export function CustomPodcast() {
         title: "URLs Extracted",
         description: `Successfully extracted ${urls.length} URLs`,
       });
+    }
+  };
+
+  const onPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text");
+    handleUrlInput(pastedText);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      const inputText = form.getValues("urls");
+      handleUrlInput(inputText);
     }
   };
 
@@ -362,9 +373,10 @@ export function CustomPodcast() {
             <Label htmlFor="urls">Enter URLs</Label>
             <Textarea
               id="urls"
-              placeholder="Paste content containing URLs - they will be automatically extracted"
+              placeholder="Paste content containing URLs or type and press Enter to extract"
               {...form.register("urls")}
               onPaste={onPaste}
+              onKeyDown={onKeyDown}
               className="min-h-[100px] font-mono text-sm"
             />
           </div>
@@ -615,15 +627,22 @@ export function CustomPodcast() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between mb-2">
                       <Label>Text-to-Speech Model</Label>
                       <TooltipProvider>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <InfoCircledIcon className="h-4 w-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              type="button"
+                              className="h-6 w-6 p-0"
+                            >
+                              <InfoCircledIcon className="h-4 w-4" />
+                            </Button>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-sm">
-                            <div className="space-y-2">
+                            <div className="space-y-2 text-sm">
                               <p className="font-semibold">
                                 API Key Setup Instructions:
                               </p>

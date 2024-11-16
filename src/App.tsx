@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomPodcast } from "@/components/CustomPodcast";
 import { APIKeys } from "@/components/APIKeys";
-import { NewsPodcast } from "@/components/NewsPodcast";
+import { TopicPodcast } from "@/components/TopicPodcast";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function App() {
@@ -57,13 +57,13 @@ export default function App() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="custom">Custom Podcast</TabsTrigger>
-                <TabsTrigger value="news">News Podcast</TabsTrigger>
+                <TabsTrigger value="topic">Topic Research</TabsTrigger>
               </TabsList>
               <TabsContent value="custom">
                 <CustomPodcast />
               </TabsContent>
-              <TabsContent value="news">
-                <NewsPodcast />
+              <TabsContent value="topic">
+                <TopicPodcast />
               </TabsContent>
             </Tabs>
           </div>
