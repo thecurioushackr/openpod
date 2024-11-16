@@ -119,9 +119,9 @@ export function CustomPodcast() {
       creativityLevel: 0.7,
       interviewerRole: "Interviewer",
       expertRole: "Subject matter expert",
-      conversationStyles: [],
-      dialogueStructure: [],
-      engagementTechniques: [],
+      conversationStyles: ["Engaging", "Fast-paced", "Enthusiastic"],
+      dialogueStructure: ["Discussions"],
+      engagementTechniques: ["Questions"],
       ttsModel: "gemini",
     },
   });
