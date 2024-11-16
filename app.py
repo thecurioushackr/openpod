@@ -88,19 +88,52 @@ def handle_generate_podcast(data):
         print("\n=== Starting Podcast Generation ===")
         emit('status', "Starting podcast generation...")
 
-        # Get the API key
-        api_key = data.get('google_key')
-        if not api_key:
-            raise ValueError("Missing Google API key")
+        # Get the selected TTS model
+        tts_model = data.get('tts_model', 'gemini')
+        print(f"\nSelected TTS Model: {tts_model}")
 
-        # Directly set environment variables
-        os.environ['GOOGLE_API_KEY'] = api_key
-        os.environ['GEMINI_API_KEY'] = api_key
+        # Set up API keys based on selected model
+        api_key_label = None
+        if tts_model == 'gemini':
+            api_key = data.get('google_key')
+            if not api_key:
+                raise ValueError("Missing Google API key")
+            os.environ['GOOGLE_API_KEY'] = api_key
+            os.environ['GEMINI_API_KEY'] = api_key
+            api_key_label = 'GEMINI_API_KEY'
 
-        # Test that they're set
-        print("\n=== Environment Variables Test ===")
-        print(f"GOOGLE_API_KEY: {os.environ.get('GOOGLE_API_KEY', 'Not set')[:5]}...")
-        print(f"GEMINI_API_KEY: {os.environ.get('GEMINI_API_KEY', 'Not set')[:5]}...")
+            # Test Gemini API
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-pro')
+                response = model.generate_content("Test message")
+                print("\n=== Gemini API Test Successful ===")
+            except Exception as e:
+                print("\n=== Gemini API Test Failed ===")
+                print(f"Error: {str(e)}")
+                raise
+
+        elif tts_model == 'openai':
+            api_key = data.get('openai_key')
+            if not api_key:
+                raise ValueError("Missing OpenAI API key")
+            os.environ['OPENAI_API_KEY'] = api_key
+            api_key_label = 'OPENAI_API_KEY'
+
+            # Test OpenAI API
+            try:
+                import openai
+                openai.api_key = api_key
+                response = openai.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": "Test message"}]
+                )
+                print("\n=== OpenAI API Test Successful ===")
+            except Exception as e:
+                print("\n=== OpenAI API Test Failed ===")
+                print(f"Error: {str(e)}")
+                raise
 
         conversation_config = {
             'word_count': int(data.get('word_count', 4000)),
@@ -122,27 +155,14 @@ def handle_generate_podcast(data):
             }
         }
 
-        # Test the API key with a simple request before proceeding
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-pro')
-            response = model.generate_content("Test message")
-            print("\n=== API Test Successful ===")
-            print("Gemini API responded successfully")
-        except Exception as e:
-            print("\n=== API Test Failed ===")
-            print(f"Error testing Gemini API: {str(e)}")
-            raise
-
         emit('status', "Generating podcast content...")
         emit('progress', {'progress': 30, 'message': 'Generating podcast content...'})
 
         result = generate_podcast(
             urls=data.get('urls', []),
             conversation_config=conversation_config,
-            tts_model='gemini',
-            api_key_label='GEMINI_API_KEY'  # This tells podcastfy which env var to use
+            tts_model=tts_model,
+            api_key_label=api_key_label  # This tells podcastfy which env var to use
         )
 
         emit('status', "Processing audio...")
