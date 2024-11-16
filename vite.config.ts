@@ -17,10 +17,12 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api": {
-        target: "http://localhost:5000",
+        target: "http://localhost:8080",
+        changeOrigin: true,
       },
       "/audio": {
-        target: "http://localhost:5000",
+        target: "http://localhost:8080",
+        changeOrigin: true,
       },
     },
   },
