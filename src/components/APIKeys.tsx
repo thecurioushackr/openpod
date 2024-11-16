@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 export function APIKeys() {
   const [keys, setKeys] = useState({
-    gemini: '',
-    openai: '',
-    elevenlabs: '',
+    gemini: "",
+    openai: "",
+    elevenlabs: "",
   });
   const { toast } = useToast();
 
@@ -17,7 +17,7 @@ export function APIKeys() {
     // In a real app, you'd send this to your backend
     localStorage.setItem(`${type}_key`, keys[type]);
     toast({
-      title: 'API Key Saved',
+      title: "API Key Saved",
       description: `Your ${type} API key has been saved successfully.`,
     });
   };
@@ -25,7 +25,7 @@ export function APIKeys() {
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold mb-6">API Keys</h2>
-      
+
       <div className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="gemini">Google (Gemini) API Key</Label>
@@ -34,9 +34,11 @@ export function APIKeys() {
               id="gemini"
               type="password"
               value={keys.gemini}
-              onChange={(e) => setKeys(prev => ({ ...prev, gemini: e.target.value }))}
+              onChange={(e) =>
+                setKeys((prev) => ({ ...prev, gemini: e.target.value }))
+              }
             />
-            <Button onClick={() => saveKey('gemini')}>Save</Button>
+            <Button onClick={() => saveKey("gemini")}>Save</Button>
           </div>
         </div>
 
@@ -47,9 +49,11 @@ export function APIKeys() {
               id="openai"
               type="password"
               value={keys.openai}
-              onChange={(e) => setKeys(prev => ({ ...prev, openai: e.target.value }))}
+              onChange={(e) =>
+                setKeys((prev) => ({ ...prev, openai: e.target.value }))
+              }
             />
-            <Button onClick={() => saveKey('openai')}>Save</Button>
+            <Button onClick={() => saveKey("openai")}>Save</Button>
           </div>
         </div>
 
@@ -60,9 +64,11 @@ export function APIKeys() {
               id="elevenlabs"
               type="password"
               value={keys.elevenlabs}
-              onChange={(e) => setKeys(prev => ({ ...prev, elevenlabs: e.target.value }))}
+              onChange={(e) =>
+                setKeys((prev) => ({ ...prev, elevenlabs: e.target.value }))
+              }
             />
-            <Button onClick={() => saveKey('elevenlabs')}>Save</Button>
+            <Button onClick={() => saveKey("elevenlabs")}>Save</Button>
           </div>
         </div>
       </div>

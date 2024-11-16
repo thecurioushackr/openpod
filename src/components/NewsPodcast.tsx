@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export function NewsPodcast() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -18,14 +18,14 @@ export function NewsPodcast() {
     try {
       // Implementation for news podcast generation
       toast({
-        title: 'Coming Soon',
-        description: 'News podcast generation is coming soon!',
+        title: "Coming Soon",
+        description: "News podcast generation is coming soon!",
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to generate news podcast',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to generate news podcast",
+        variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
@@ -36,10 +36,7 @@ export function NewsPodcast() {
     <div className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="topics">Topics of Interest</Label>
-        <Input
-          id="topics"
-          placeholder="e.g., Technology, Business, Science"
-        />
+        <Input id="topics" placeholder="e.g., Technology, Business, Science" />
       </div>
 
       {isGenerating && (
@@ -62,7 +59,7 @@ export function NewsPodcast() {
             Generating News Podcast
           </>
         ) : (
-          'Generate News Podcast'
+          "Generate News Podcast"
         )}
       </Button>
     </div>
