@@ -89,12 +89,12 @@ def handle_generate_podcast(data):
         emit('status', "Starting podcast generation...")
 
         # Get the selected TTS model
-        tts_model = data.get('tts_model', 'gemini')
+        tts_model = data.get('tts_model', 'geminimulti')
         print(f"\nSelected TTS Model: {tts_model}")
 
         # Set up API keys based on selected model
         api_key_label = None
-        if tts_model == 'gemini':
+        if tts_model in ['gemini', 'geminimulti']:
             api_key = data.get('google_key')
             if not api_key:
                 raise ValueError("Missing Google API key")
@@ -102,41 +102,7 @@ def handle_generate_podcast(data):
             os.environ['GEMINI_API_KEY'] = api_key
             api_key_label = 'GEMINI_API_KEY'
 
-            # Test Gemini API
-            try:
-                import google.generativeai as genai
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-pro')
-                response = model.generate_content("Test message")
-                print("\n=== Gemini API Test Successful ===")
-            except Exception as e:
-                print("\n=== Gemini API Test Failed ===")
-                print(f"Error: {str(e)}")
-                raise
-
-        elif tts_model == 'openai':
-            api_key = data.get('openai_key')
-            if not api_key:
-                raise ValueError("Missing OpenAI API key")
-            os.environ['OPENAI_API_KEY'] = api_key
-            api_key_label = 'OPENAI_API_KEY'
-
-            # Test OpenAI API
-            try:
-                import openai
-                openai.api_key = api_key
-                response = openai.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": "Test message"}]
-                )
-                print("\n=== OpenAI API Test Successful ===")
-            except Exception as e:
-                print("\n=== OpenAI API Test Failed ===")
-                print(f"Error: {str(e)}")
-                raise
-
         conversation_config = {
-            'word_count': int(data.get('word_count', 4000)),
             'creativity': float(data.get('creativity', 0.7)),
             'conversation_style': data.get('conversation_style', []),
             'roles_person1': data.get('roles_person1', 'Interviewer'),
@@ -150,7 +116,7 @@ def handle_generate_podcast(data):
             'text_to_speech': {
                 'temp_audio_dir': TEMP_DIR,
                 'ending_message': "Thank you for listening to this episode.",
-                'default_tts_model': 'gemini',
+                'default_tts_model': 'geminimulti',
                 'audio_format': 'mp3'
             }
         }
@@ -162,6 +128,7 @@ def handle_generate_podcast(data):
             urls=data.get('urls', []),
             conversation_config=conversation_config,
             tts_model=tts_model,
+            longform=bool(data.get('is_long_form', False)),
             api_key_label=api_key_label  # This tells podcastfy which env var to use
         )
 

@@ -33,6 +33,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
+import { Switch } from "@/components/ui/switch";
 
 type ConversationStyle =
   | "Engaging"
@@ -55,13 +56,13 @@ type EngagementTechnique =
   | "Anecdotes"
   | "Analogies"
   | "Humor";
-type TTSModel = "gemini" | "edge" | "openai" | "elevenlabs";
+type TTSModel = "geminimulti" | "edge" | "openai" | "elevenlabs";
 
 interface PodcastPayload {
   urls: string[];
   name: string;
   tagline: string;
-  word_count: number;
+  is_long_form: boolean;
   creativity: number;
   conversation_style: string[];
   roles_person1: string;
@@ -76,20 +77,18 @@ interface PodcastPayload {
 }
 
 const formSchema = z.object({
-  urls: z.string().optional(),
-  podcastName: z.string().min(1, "Podcast name is required"),
-  podcastTagline: z.string().min(1, "Podcast tagline is required"),
-  instructions: z.string().optional(),
-  wordCount: z.number().min(100).max(10000).default(4000),
-  creativityLevel: z.number().min(0).max(1).default(0.7),
-  interviewerRole: z.string().default("Interviewer"),
-  expertRole: z.string().default("Subject matter expert"),
-  conversationStyles: z.array(z.string()).default([]),
-  dialogueStructure: z.array(z.string()).default([]),
-  engagementTechniques: z.array(z.string()).default([]),
-  ttsModel: z
-    .enum(["gemini", "edge", "openai", "elevenlabs"])
-    .default("gemini"),
+  urls: z.string(),
+  podcastName: z.string(),
+  podcastTagline: z.string(),
+  instructions: z.string(),
+  isLongForm: z.boolean().default(false),
+  creativityLevel: z.number().min(0).max(1),
+  interviewerRole: z.string(),
+  expertRole: z.string(),
+  conversationStyles: z.array(z.string()),
+  dialogueStructure: z.array(z.string()),
+  engagementTechniques: z.array(z.string()),
+  ttsModel: z.string(),
 });
 
 const extractUrls = (text: string): string[] => {
@@ -115,14 +114,14 @@ export function CustomPodcast() {
       podcastName: "",
       podcastTagline: "",
       instructions: "",
-      wordCount: 4000,
+      isLongForm: false,
       creativityLevel: 0.7,
       interviewerRole: "Interviewer",
       expertRole: "Subject matter expert",
       conversationStyles: ["Engaging", "Fast-paced", "Enthusiastic"],
       dialogueStructure: ["Discussions"],
       engagementTechniques: ["Questions"],
-      ttsModel: "gemini",
+      ttsModel: "geminimulti",
     },
   });
 
@@ -176,7 +175,7 @@ export function CustomPodcast() {
 
   const getRequiredApiKey = (model: TTSModel) => {
     switch (model) {
-      case "gemini":
+      case "geminimulti":
         return { key: sessionStorage.getItem("google_key"), name: "Google" };
       case "openai":
         return { key: sessionStorage.getItem("openai_key"), name: "OpenAI" };
@@ -231,7 +230,7 @@ export function CustomPodcast() {
           urls: parsedUrls,
           name: values.podcastName,
           tagline: values.podcastTagline,
-          word_count: values.wordCount,
+          is_long_form: values.isLongForm,
           creativity: values.creativityLevel,
           conversation_style: values.conversationStyles,
           roles_person1: values.interviewerRole,
@@ -239,25 +238,21 @@ export function CustomPodcast() {
           dialogue_structure: values.dialogueStructure,
           user_instructions: values.instructions,
           engagement_techniques: values.engagementTechniques,
-          tts_model: values.ttsModel,
+          tts_model: values.ttsModel as TTSModel,
         };
 
-        // Add API key
-        const requiredApiKey = getRequiredApiKey(values.ttsModel);
-        if (requiredApiKey?.key) {
+        // Add API key based on selected model
+        const requiredApiKey = getRequiredApiKey(values.ttsModel as TTSModel);
+        if (requiredApiKey) {
           switch (values.ttsModel) {
-            case "gemini":
-              payload.google_key = requiredApiKey.key;
-              console.log(
-                "Adding Google API key:",
-                requiredApiKey.key.substring(0, 5) + "..."
-              );
+            case "geminimulti":
+              payload.google_key = requiredApiKey.key || undefined;
               break;
             case "openai":
-              payload.openai_key = requiredApiKey.key;
+              payload.openai_key = requiredApiKey.key || undefined;
               break;
             case "elevenlabs":
-              payload.elevenlabs_key = requiredApiKey.key;
+              payload.elevenlabs_key = requiredApiKey.key || undefined;
               break;
           }
         }
@@ -440,12 +435,19 @@ export function CustomPodcast() {
               <AccordionContent>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label>Word Count</Label>
-                    <Input
-                      type="number"
-                      {...form.register("wordCount", { valueAsNumber: true })}
-                      className="w-full"
-                    />
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="isLongForm">Long-form Content</Label>
+                      <Switch
+                        id="isLongForm"
+                        checked={form.watch("isLongForm")}
+                        onCheckedChange={(checked: boolean) =>
+                          form.setValue("isLongForm", checked)
+                        }
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Enable for longer, more detailed podcast content
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -661,8 +663,8 @@ export function CustomPodcast() {
                         <SelectValue placeholder="Select TTS model" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gemini">
-                          Google Gemini (requires API key)
+                        <SelectItem value="geminimulti">
+                          Google Gemini Multi (requires API key)
                         </SelectItem>
                         <SelectItem value="edge">
                           Microsoft Edge TTS (Free)
