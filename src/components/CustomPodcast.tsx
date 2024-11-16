@@ -55,7 +55,7 @@ type EngagementTechnique =
   | "Anecdotes"
   | "Analogies"
   | "Humor";
-type TTSModel = "google" | "edge" | "openai" | "elevenlabs";
+type TTSModel = "gemini" | "edge" | "openai" | "elevenlabs";
 
 interface PodcastPayload {
   urls: string[];
@@ -88,8 +88,8 @@ const formSchema = z.object({
   dialogueStructure: z.array(z.string()).default([]),
   engagementTechniques: z.array(z.string()).default([]),
   ttsModel: z
-    .enum(["google", "edge", "openai", "elevenlabs"])
-    .default("google"),
+    .enum(["gemini", "edge", "openai", "elevenlabs"])
+    .default("gemini"),
 });
 
 const extractUrls = (text: string): string[] => {
@@ -122,7 +122,7 @@ export function CustomPodcast() {
       conversationStyles: [],
       dialogueStructure: [],
       engagementTechniques: [],
-      ttsModel: "google",
+      ttsModel: "gemini",
     },
   });
 
@@ -176,7 +176,7 @@ export function CustomPodcast() {
 
   const getRequiredApiKey = (model: TTSModel) => {
     switch (model) {
-      case "google":
+      case "gemini":
         return { key: sessionStorage.getItem("google_key"), name: "Google" };
       case "openai":
         return { key: sessionStorage.getItem("openai_key"), name: "OpenAI" };
@@ -246,7 +246,7 @@ export function CustomPodcast() {
         const requiredApiKey = getRequiredApiKey(values.ttsModel);
         if (requiredApiKey?.key) {
           switch (values.ttsModel) {
-            case "google":
+            case "gemini":
               payload.google_key = requiredApiKey.key;
               console.log(
                 "Adding Google API key:",
@@ -661,7 +661,7 @@ export function CustomPodcast() {
                         <SelectValue placeholder="Select TTS model" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="google">
+                        <SelectItem value="gemini">
                           Google Gemini (requires API key)
                         </SelectItem>
                         <SelectItem value="edge">
