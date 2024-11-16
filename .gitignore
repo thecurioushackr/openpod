@@ -27,3 +27,4 @@ data/*
 static/*
 tsconfig.app.tsbuildinfo
 tsconfig.node.tsbuildinfo
+data/*
