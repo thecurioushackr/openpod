@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -97,6 +97,64 @@ const extractUrls = (text: string): string[] => {
 };
 
 type PodcastFormData = z.infer<typeof formSchema>;
+
+const AddCustomValue = ({
+  onAdd,
+  placeholder,
+}: {
+  onAdd: (value: string) => void;
+  placeholder: string;
+}) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isAdding) {
+      inputRef.current?.focus();
+    }
+  }, [isAdding]);
+
+  const handleAdd = () => {
+    if (value.trim()) {
+      onAdd(value.trim());
+      setValue("");
+      setIsAdding(false);
+    }
+  };
+
+  return isAdding ? (
+    <div className="flex items-center gap-2">
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        className="h-8 text-sm"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleAdd();
+          if (e.key === "Escape") setIsAdding(false);
+        }}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsAdding(false)}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  ) : (
+    <Badge
+      variant="outline"
+      className="cursor-pointer"
+      onClick={() => setIsAdding(true)}
+    >
+      + Add Custom
+    </Badge>
+  );
+};
 
 export function CustomPodcast() {
   const [parsedUrls, setParsedUrls] = useState<string[]>([]);
@@ -353,6 +411,14 @@ export function CustomPodcast() {
     });
   };
 
+  // Convert the constant arrays to state so we can add to them
+  const [customConversationStyles, setCustomConversationStyles] =
+    useState<ConversationStyle[]>(conversationStyles);
+  const [customDialogueStructures, setCustomDialogueStructures] =
+    useState<DialogueStructure[]>(dialogueStructures);
+  const [customEngagementTechniques, setCustomEngagementTechniques] =
+    useState<EngagementTechnique[]>(engagementTechniques);
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <Card className="p-6">
@@ -433,283 +499,328 @@ export function CustomPodcast() {
               <Label htmlFor="podcastTagline">Podcast Tagline</Label>
               <Input id="podcastTagline" {...form.register("podcastTagline")} />
             </div>
-
-            <Accordion type="single" collapsible>
-              <AccordionItem value="instructions">
-                <AccordionTrigger>Additional Instructions</AccordionTrigger>
-                <AccordionContent>
-                  <Textarea
-                    id="instructions"
-                    {...form.register("instructions")}
-                    placeholder="Add any specific instructions for the podcast generation..."
-                    className="min-h-[100px]"
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
           </div>
 
-          <Accordion type="single" collapsible className="w-full mt-4">
+          <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="advanced">
               <AccordionTrigger>Advanced Settings</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="isLongForm">Long-form Content</Label>
-                      <Switch
-                        id="isLongForm"
-                        checked={form.watch("isLongForm")}
-                        onCheckedChange={(checked: boolean) =>
-                          form.setValue("isLongForm", checked)
-                        }
-                      />
-                    </div>
+                    <Label htmlFor="instructions">
+                      Additional Instructions
+                    </Label>
+                    <Textarea
+                      id="instructions"
+                      placeholder="Add any specific instructions or preferences for the podcast generation..."
+                      {...form.register("instructions")}
+                      className="min-h-[100px]"
+                    />
                     <p className="text-sm text-muted-foreground">
-                      Enable for longer, more detailed podcast content
+                      Optional: Add any specific requirements or preferences for
+                      the podcast generation
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>
-                      Creativity Level ({form.watch("creativityLevel")})
-                    </Label>
-                    <Slider
-                      value={[form.watch("creativityLevel")]}
-                      onValueChange={([value]) =>
-                        form.setValue("creativityLevel", value)
-                      }
-                      max={1}
-                      step={0.1}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label>Interviewer Role</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <InfoCircledIcon className="h-4 w-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Define the role of the first speaker (e.g., Host,
-                              Moderator, Journalist)
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="long-form"
+                        checked={form.watch("isLongForm")}
+                        onCheckedChange={(checked) =>
+                          form.setValue("isLongForm", checked)
+                        }
+                      />
+                      <Label htmlFor="long-form">Long-form Content</Label>
                     </div>
-                    <Input {...form.register("interviewerRole")} />
-                  </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label>Expert Role</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <InfoCircledIcon className="h-4 w-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              Define the role of the second speaker (e.g., Guest
-                              Expert, Specialist, Researcher)
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                    <div className="space-y-2">
+                      <Label>
+                        Creativity Level ({form.watch("creativityLevel")})
+                      </Label>
+                      <Slider
+                        value={[form.watch("creativityLevel")]}
+                        onValueChange={([value]) =>
+                          form.setValue("creativityLevel", value)
+                        }
+                        max={1}
+                        step={0.1}
+                        className="w-full"
+                      />
                     </div>
-                    <Input {...form.register("expertRole")} />
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label>Conversation Style</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {conversationStyles.map((style) => (
-                        <Badge
-                          key={style}
-                          variant={
-                            form.watch("conversationStyles").includes(style)
-                              ? "default"
-                              : "outline"
-                          }
-                          className="cursor-pointer"
-                          onClick={() => {
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label>Interviewer Role</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <InfoCircledIcon className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Define the role of the first speaker (e.g.,
+                                Host, Moderator, Journalist)
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Input {...form.register("interviewerRole")} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label>Expert Role</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <InfoCircledIcon className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">
+                                Define the role of the second speaker (e.g.,
+                                Guest Expert, Specialist, Researcher)
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Input {...form.register("expertRole")} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Conversation Style</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {customConversationStyles.map((style) => (
+                          <Badge
+                            key={style}
+                            variant={
+                              form.watch("conversationStyles").includes(style)
+                                ? "default"
+                                : "outline"
+                            }
+                            className="cursor-pointer"
+                            onClick={() => {
+                              const current = form.watch("conversationStyles");
+                              if (current.includes(style)) {
+                                form.setValue(
+                                  "conversationStyles",
+                                  current.filter((s) => s !== style)
+                                );
+                              } else {
+                                form.setValue("conversationStyles", [
+                                  ...current,
+                                  style,
+                                ]);
+                              }
+                            }}
+                          >
+                            {style}
+                          </Badge>
+                        ))}
+                        <AddCustomValue
+                          onAdd={(value) => {
+                            setCustomConversationStyles((prev) => [
+                              ...prev,
+                              value as ConversationStyle,
+                            ]);
                             const current = form.watch("conversationStyles");
-                            if (current.includes(style)) {
-                              form.setValue(
-                                "conversationStyles",
-                                current.filter((s) => s !== style)
-                              );
-                            } else {
+                            if (!current.includes(value)) {
                               form.setValue("conversationStyles", [
                                 ...current,
-                                style,
+                                value,
                               ]);
                             }
                           }}
-                        >
-                          {style}
-                        </Badge>
-                      ))}
+                          placeholder="Enter custom style"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label>Dialogue Structure</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {dialogueStructures.map((structure) => (
-                        <Badge
-                          key={structure}
-                          variant={
-                            form.watch("dialogueStructure").includes(structure)
-                              ? "default"
-                              : "outline"
-                          }
-                          className="cursor-pointer"
-                          onClick={() => {
+                    <div className="space-y-2">
+                      <Label>Dialogue Structure</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {customDialogueStructures.map((structure) => (
+                          <Badge
+                            key={structure}
+                            variant={
+                              form
+                                .watch("dialogueStructure")
+                                .includes(structure)
+                                ? "default"
+                                : "outline"
+                            }
+                            className="cursor-pointer"
+                            onClick={() => {
+                              const current = form.watch("dialogueStructure");
+                              if (current.includes(structure)) {
+                                form.setValue(
+                                  "dialogueStructure",
+                                  current.filter((s) => s !== structure)
+                                );
+                              } else {
+                                form.setValue("dialogueStructure", [
+                                  ...current,
+                                  structure,
+                                ]);
+                              }
+                            }}
+                          >
+                            {structure}
+                          </Badge>
+                        ))}
+                        <AddCustomValue
+                          onAdd={(value) => {
+                            setCustomDialogueStructures((prev) => [
+                              ...prev,
+                              value as DialogueStructure,
+                            ]);
                             const current = form.watch("dialogueStructure");
-                            if (current.includes(structure)) {
-                              form.setValue(
-                                "dialogueStructure",
-                                current.filter((s) => s !== structure)
-                              );
-                            } else {
+                            if (!current.includes(value)) {
                               form.setValue("dialogueStructure", [
                                 ...current,
-                                structure,
+                                value,
                               ]);
                             }
                           }}
-                        >
-                          {structure}
-                        </Badge>
-                      ))}
+                          placeholder="Enter custom structure"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label>Engagement Techniques</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {engagementTechniques.map((technique) => (
-                        <Badge
-                          key={technique}
-                          variant={
-                            form
-                              .watch("engagementTechniques")
-                              .includes(technique)
-                              ? "default"
-                              : "outline"
-                          }
-                          className="cursor-pointer"
-                          onClick={() => {
-                            const current = form.watch("engagementTechniques");
-                            if (current.includes(technique)) {
-                              form.setValue(
-                                "engagementTechniques",
-                                current.filter((t) => t !== technique)
+                    <div className="space-y-2">
+                      <Label>Engagement Techniques</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {customEngagementTechniques.map((technique) => (
+                          <Badge
+                            key={technique}
+                            variant={
+                              form
+                                .watch("engagementTechniques")
+                                .includes(technique)
+                                ? "default"
+                                : "outline"
+                            }
+                            className="cursor-pointer"
+                            onClick={() => {
+                              const current = form.watch(
+                                "engagementTechniques"
                               );
-                            } else {
+                              if (current.includes(technique)) {
+                                form.setValue(
+                                  "engagementTechniques",
+                                  current.filter((t) => t !== technique)
+                                );
+                              } else {
+                                form.setValue("engagementTechniques", [
+                                  ...current,
+                                  technique,
+                                ]);
+                              }
+                            }}
+                          >
+                            {technique}
+                          </Badge>
+                        ))}
+                        <AddCustomValue
+                          onAdd={(value) => {
+                            setCustomEngagementTechniques((prev) => [
+                              ...prev,
+                              value as EngagementTechnique,
+                            ]);
+                            const current = form.watch("engagementTechniques");
+                            if (!current.includes(value)) {
                               form.setValue("engagementTechniques", [
                                 ...current,
-                                technique,
+                                value,
                               ]);
                             }
                           }}
-                        >
-                          {technique}
-                        </Badge>
-                      ))}
+                          placeholder="Enter custom technique"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label>Text-to-Speech Model</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              type="button"
-                              className="h-6 w-6 p-0"
-                            >
-                              <InfoCircledIcon className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-sm">
-                            <div className="space-y-2 text-sm">
-                              <p className="font-semibold">
-                                API Key Setup Instructions:
-                              </p>
-                              <p>
-                                <strong>Google Gemini:</strong>
-                              </p>
-                              <ol className="list-decimal pl-4 space-y-1">
-                                <li>Go to Google Cloud Console</li>
-                                <li>
-                                  Enable both "Vertex AI API" and "Cloud
-                                  Text-to-Speech API"
-                                </li>
-                                <li>
-                                  Create an API key with access to these APIs
-                                </li>
-                                <li>
-                                  Add Cloud Text-to-Speech API permission to the
-                                  key
-                                </li>
-                              </ol>
-                              <p>
-                                <strong>OpenAI:</strong> Get your API key from
-                                OpenAI dashboard
-                              </p>
-                              <p>
-                                <strong>ElevenLabs:</strong> Get your API key
-                                from ElevenLabs dashboard
-                              </p>
-                              <p>
-                                <strong>Edge TTS:</strong> No API key required -
-                                free to use
-                              </p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Text-to-Speech Model</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                className="h-6 w-6 p-0"
+                              >
+                                <InfoCircledIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm">
+                              <div className="space-y-2 text-sm">
+                                <p className="font-semibold">
+                                  API Key Setup Instructions:
+                                </p>
+                                <p>
+                                  <strong>Google Gemini:</strong>
+                                </p>
+                                <ol className="list-decimal pl-4 space-y-1">
+                                  <li>Go to Google Cloud Console</li>
+                                  <li>
+                                    Enable both "Vertex AI API" and "Cloud
+                                    Text-to-Speech API"
+                                  </li>
+                                  <li>
+                                    Create an API key with access to these APIs
+                                  </li>
+                                  <li>
+                                    Add Cloud Text-to-Speech API permission to
+                                    the key
+                                  </li>
+                                </ol>
+                                <p>
+                                  <strong>OpenAI:</strong> Get your API key from
+                                  OpenAI dashboard
+                                </p>
+                                <p>
+                                  <strong>ElevenLabs:</strong> Get your API key
+                                  from ElevenLabs dashboard
+                                </p>
+                                <p>
+                                  <strong>Edge TTS:</strong> No API key required
+                                  - free to use
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Select
+                        value={form.watch("ttsModel")}
+                        onValueChange={(value: TTSModel) =>
+                          form.setValue("ttsModel", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select TTS model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="geminimulti">
+                            Google Gemini Multi (requires API key)
+                          </SelectItem>
+                          <SelectItem value="edge">
+                            Microsoft Edge TTS (Free)
+                          </SelectItem>
+                          <SelectItem value="openai">
+                            OpenAI TTS (requires API key)
+                          </SelectItem>
+                          <SelectItem value="elevenlabs">
+                            ElevenLabs (requires API key)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Select
-                      value={form.watch("ttsModel")}
-                      onValueChange={(value: TTSModel) =>
-                        form.setValue("ttsModel", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select TTS model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="geminimulti">
-                          Google Gemini Multi (requires API key)
-                        </SelectItem>
-                        <SelectItem value="edge">
-                          Microsoft Edge TTS (Free)
-                        </SelectItem>
-                        <SelectItem value="openai">
-                          OpenAI TTS (requires API key)
-                        </SelectItem>
-                        <SelectItem value="elevenlabs">
-                          ElevenLabs (requires API key)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {form.watch("ttsModel") !== "edge" && (
-                      <p className="text-sm text-muted-foreground">
-                        API key required. Click the info icon above for setup
-                        instructions.
-                      </p>
-                    )}
                   </div>
                 </div>
               </AccordionContent>
