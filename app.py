@@ -124,12 +124,16 @@ def handle_generate_podcast(data):
         emit('status', "Generating podcast content...")
         emit('progress', {'progress': 30, 'message': 'Generating podcast content...'})
 
+        # Add image_paths parameter if provided
+        image_paths = data.get('image_urls', [])
+
         result = generate_podcast(
             urls=data.get('urls', []),
             conversation_config=conversation_config,
             tts_model=tts_model,
             longform=bool(data.get('is_long_form', False)),
-            api_key_label=api_key_label  # This tells podcastfy which env var to use
+            api_key_label=api_key_label,  # This tells podcastfy which env var to use
+            image_paths=image_paths if image_paths else None  # Only pass if not empty
         )
 
         emit('status', "Processing audio...")

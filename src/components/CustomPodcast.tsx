@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Play, Download, X } from "lucide-react";
+import { Loader2, Play, Download, X, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -74,6 +74,7 @@ interface PodcastPayload {
   google_key?: string;
   openai_key?: string;
   elevenlabs_key?: string;
+  image_urls?: string[];
 }
 
 const formSchema = z.object({
@@ -89,11 +90,39 @@ const formSchema = z.object({
   dialogueStructure: z.array(z.string()),
   engagementTechniques: z.array(z.string()),
   ttsModel: z.string(),
+  imageUrls: z.string(),
 });
 
 const extractUrls = (text: string): string[] => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   return text.match(urlRegex) || [];
+};
+
+const extractImageUrls = (text: string): string[] => {
+  const imageExtensionRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp))/gi;
+  const imageUrls = text.match(imageExtensionRegex) || [];
+
+  const generalUrlRegex = /(https?:\/\/[^\s]+)/g;
+  const allUrls = text.match(generalUrlRegex) || [];
+
+  const additionalImageUrls = allUrls.filter(url => {
+    const lowercaseUrl = url.toLowerCase();
+    return (
+      lowercaseUrl.includes('images') ||
+      lowercaseUrl.includes('img') ||
+      lowercaseUrl.includes('photos') ||
+      lowercaseUrl.includes('imgur') ||
+      lowercaseUrl.includes('cloudinary') ||
+      lowercaseUrl.includes('imagekit') ||
+      lowercaseUrl.includes('uploadcare') ||
+      lowercaseUrl.includes('cdn') ||
+      lowercaseUrl.includes('media') ||
+      lowercaseUrl.includes('image=') ||
+      lowercaseUrl.includes('type=image')
+    );
+  });
+
+  return [...new Set([...imageUrls, ...additionalImageUrls])];
 };
 
 type PodcastFormData = z.infer<typeof formSchema>;
@@ -164,6 +193,7 @@ export function CustomPodcast() {
   const [audioUrl, setAudioUrl] = useState("");
   const [transcript, setTranscript] = useState("");
   const { toast } = useToast();
+  const [parsedImageUrls, setParsedImageUrls] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -180,12 +210,14 @@ export function CustomPodcast() {
       dialogueStructure: ["Discussions"],
       engagementTechniques: ["Questions"],
       ttsModel: "geminimulti",
+      imageUrls: "",
     },
   });
 
   useEffect(() => {
     const savedData = localStorage.getItem("podcast_form");
     const savedUrls = localStorage.getItem("podcast_urls");
+    const savedImageUrls = localStorage.getItem("podcast_image_urls");
 
     if (savedData) {
       const parsedData = JSON.parse(savedData) as PodcastFormData;
@@ -196,6 +228,10 @@ export function CustomPodcast() {
 
     if (savedUrls) {
       setParsedUrls(JSON.parse(savedUrls));
+    }
+
+    if (savedImageUrls) {
+      setParsedImageUrls(JSON.parse(savedImageUrls));
     }
   }, []);
 
@@ -208,6 +244,10 @@ export function CustomPodcast() {
     localStorage.setItem("podcast_urls", JSON.stringify(parsedUrls));
   }, [parsedUrls]);
 
+  useEffect(() => {
+    localStorage.setItem("podcast_image_urls", JSON.stringify(parsedImageUrls));
+  }, [parsedImageUrls]);
+
   const handleUrlInput = (text: string) => {
     const urls = extractUrls(text);
     if (urls.length > 0) {
@@ -217,6 +257,33 @@ export function CustomPodcast() {
         title: "URLs Extracted",
         description: `Successfully extracted ${urls.length} URLs`,
       });
+    }
+  };
+
+  const handleImageUrlInput = (text: string) => {
+    const urls = extractImageUrls(text);
+    if (urls.length > 0) {
+      setParsedImageUrls((prev) => [...new Set([...prev, ...urls])]);
+      form.setValue("imageUrls", "", { shouldValidate: true });
+      toast({
+        title: "Image URLs Extracted",
+        description: `Successfully extracted ${urls.length} image URLs`,
+      });
+    } else {
+      const regularUrls = extractUrls(text);
+      if (regularUrls.length > 0) {
+        const imageUrls = regularUrls.filter(url =>
+          /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+        );
+        if (imageUrls.length > 0) {
+          setParsedImageUrls((prev) => [...new Set([...prev, ...imageUrls])]);
+          form.setValue("imageUrls", "", { shouldValidate: true });
+          toast({
+            title: "Image URLs Extracted",
+            description: `Successfully extracted ${imageUrls.length} image URLs`,
+          });
+        }
+      }
     }
   };
 
@@ -308,6 +375,7 @@ export function CustomPodcast() {
           user_instructions: values.instructions,
           engagement_techniques: values.engagementTechniques,
           tts_model: values.ttsModel as TTSModel,
+          image_urls: parsedImageUrls.length > 0 ? parsedImageUrls : undefined,
         };
 
         // Add API key based on selected model
@@ -403,8 +471,10 @@ export function CustomPodcast() {
   const clearSavedData = () => {
     localStorage.removeItem("podcast_form");
     localStorage.removeItem("podcast_urls");
+    localStorage.removeItem("podcast_image_urls");
     form.reset();
     setParsedUrls([]);
+    setParsedImageUrls([]);
     toast({
       title: "Form Cleared",
       description: "All saved data has been cleared",
@@ -418,6 +488,26 @@ export function CustomPodcast() {
     useState<DialogueStructure[]>(dialogueStructures);
   const [customEngagementTechniques, setCustomEngagementTechniques] =
     useState<EngagementTechnique[]>(engagementTechniques);
+
+  const onImagePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text");
+    handleImageUrlInput(pastedText);
+  };
+
+  const onImageKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      const inputText = form.getValues("imageUrls");
+      handleImageUrlInput(inputText);
+    }
+  };
+
+  const removeImageUrl = (index: number) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    setParsedImageUrls((prev) => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -488,6 +578,62 @@ export function CustomPodcast() {
               </div>
             </div>
           )}
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="imageUrls" className="flex items-center gap-2">
+                <ImagePlus className="h-4 w-4" />
+                Image URLs (Optional)
+              </Label>
+              <Textarea
+                id="imageUrls"
+                placeholder="You can paste image URLs or type and press Enter to extract. These will be used as additional sources for the podcast."
+                {...form.register("imageUrls")}
+                onPaste={onImagePaste}
+                onKeyDown={onImageKeyDown}
+                className="min-h-[100px] font-mono text-sm"
+              />
+            </div>
+
+            {parsedImageUrls.length > 0 && (
+              <div className="space-y-2">
+                <Label>Parsed Image URLs</Label>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {parsedImageUrls.map((url, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-secondary/50 p-2 rounded text-sm group"
+                    >
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <div className="w-8 h-8 flex-shrink-0">
+                          <img
+                            src={url}
+                            alt=""
+                            className="w-full h-full object-cover rounded"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+                              target.className = "w-full h-full p-1";
+                            }}
+                          />
+                        </div>
+                        <span className="truncate font-mono">{url}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeImageUrl(index)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
