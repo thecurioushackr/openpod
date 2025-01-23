@@ -28,3 +28,10 @@ static/*
 tsconfig.app.tsbuildinfo
 tsconfig.node.tsbuildinfo
 data/*
+.venv/*
+
+# New additions
+static/audio/*
+static/transcripts/*
+!static/audio/.gitkeep
+!static/transcripts/.gitkeep

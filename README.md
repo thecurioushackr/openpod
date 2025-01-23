@@ -16,6 +16,7 @@ A modern web application that automatically generates engaging podcast conversat
 - Python 3.11
 - pip
 - bun
+- pyenv
 - Poetry (optional but recommended)
 - Fly.io CLI
 
@@ -28,19 +29,41 @@ git clone https://github.com/giulioco/openpod
 cd openpod
 ```
 
-2. Install frontend dependencies:
+2. Set up Python environment:
 
 ```bash
+# Install Python 3.11.7 with shared libraries enabled
+env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.11.7
+pyenv local 3.11.7
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Unix/MacOS
+# or
+.\.venv\Scripts\activate  # On Windows
+
+# Upgrade pip
+pip install --upgrade pip
+```
+
+3. Install dependencies:
+
+```bash
+# Install backend dependencies
+pip install -r requirements.txt
+
+# Install frontend dependencies
 bun install
 ```
 
-3. Install backend dependencies:
+4. Set up environment variables:
 
 ```bash
-pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
-4. Start the development servers:
+5. Start the development servers:
 
 ```bash
 bun dev
@@ -68,7 +91,7 @@ fly auth login
 fly launch
 ```
 
-4. . Deploy the application:
+4. Deploy the application:
 
 ```bash
 fly deploy
@@ -94,3 +117,105 @@ fly deploy
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+### API Endpoints
+
+#### Generate Podcast from Transcript
+
+A secure endpoint that generates podcasts from existing transcripts. Requires API token authentication.
+
+##### Authentication
+
+1. Generate a secure API token and add it to your `.env` file:
+
+```bash
+# Generate a secure token
+openssl rand -hex 32
+
+# Add to .env
+API_TOKEN=your_generated_token
+```
+
+##### Endpoint Details
+
+- **URL**: `/api/generate-from-transcript`
+- **Method**: `POST`
+- **Auth Required**: Yes (Bearer Token)
+- **Headers**:
+  ```
+  Authorization: Bearer your_api_token
+  Content-Type: application/json
+  ```
+
+##### Request Body
+
+```json
+{
+  "transcript": "Your conversation transcript here",
+  "tts_model": "geminimulti", // optional
+  "creativity": 0.7, // optional
+  "conversation_style": ["casual", "humorous"], // optional
+  "roles_person1": "Host", // optional
+  "roles_person2": "Guest", // optional
+  "dialogue_structure": ["Introduction", "Content", "Conclusion"], // optional
+  "podcast_name": "My Custom Podcast", // optional
+  "podcast_tagline": "", // optional
+  "output_language": "English", // optional
+  "user_instructions": "", // optional
+  "engagement_techniques": [], // optional
+  "ending_message": "Thank you for listening", // optional
+  "google_key": "your_google_api_key" // required for gemini/geminimulti
+}
+```
+
+##### Response
+
+Success Response:
+
+```json
+{
+  "success": true,
+  "audio_url": "/audio/transcript_podcast_abc123.mp3",
+  "transcript": "Processed transcript..." // if available
+}
+```
+
+Error Response:
+
+```json
+{
+  "error": "Error message here"
+}
+```
+
+##### Example Usage
+
+```bash
+curl -X POST \
+  http://your-server/api/generate-from-transcript \
+  -H 'Authorization: Bearer your_api_token' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "transcript": "<Person1> Hi and welcome to the podcast! </Person1>\n<Person2> Thanks for having me! </Person2>\n<Person1> Let'\''s get started with our first topic. </Person1>",
+    "podcast_name": "My Custom Podcast",
+    "google_key": "your_google_api_key"
+  }'
+```
+
+For Windows PowerShell users:
+
+```powershell
+$body = @{
+    transcript = "<Person1> Hi and welcome to the podcast! </Person1>`n<Person2> Thanks for having me! </Person2>`n<Person1> Let's get started with our first topic. </Person1>"
+    podcast_name = "My Custom Podcast"
+    google_key = "your_google_api_key"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post `
+    -Uri "http://your-server/api/generate-from-transcript" `
+    -Headers @{
+        "Authorization" = "Bearer your_api_token"
+        "Content-Type" = "application/json"
+    } `
+    -Body $body
+```
