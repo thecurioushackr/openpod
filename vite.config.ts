@@ -32,6 +32,9 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    outDir: "static",
+    assetsDir: "assets",
+    emptyOutDir: true,
   },
   clearScreen: false,
   logLevel: "info",

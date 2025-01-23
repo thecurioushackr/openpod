@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, session, render_template
+from flask import Flask, request, jsonify, send_file, session, render_template, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -46,9 +46,12 @@ if app.debug:
         return send_file('../index.html')
 else:
     # Serve static files in production
-    @app.route('/')
-    def index():
-        return send_file('static/index.html')
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve(path):
+        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        return send_from_directory(app.static_folder, 'index.html')
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 

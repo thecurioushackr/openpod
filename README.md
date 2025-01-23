@@ -110,6 +110,7 @@ fly volumes create audio_data --size 1
 6. Deploy the application:
 
 ```bash
+# Deploy to Fly.io (this will automatically build both frontend and backend)
 fly deploy
 ```
 

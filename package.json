@@ -9,7 +9,8 @@
     "dev:backend": "python app.py",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "fly deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
