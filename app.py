@@ -28,7 +28,7 @@ os.makedirs(TRANSCRIPT_DIR, exist_ok=True)
 
 app = Flask(__name__,
     static_folder='static',
-    static_url_path=''
+    static_url_path='/static'
 )
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(24))
 
@@ -279,16 +279,20 @@ def handle_generate_news_podcast(data):
 @app.route('/audio/<path:filename>')
 def serve_audio(filename):
     """Serve generated audio files"""
-    # First check if file exists in data/audio
-    data_audio_path = os.path.join('data/audio', filename)
-    if os.path.exists(data_audio_path):
-        # Move file to static directory
-        static_path = os.path.join(AUDIO_DIR, filename)
-        shutil.move(data_audio_path, static_path)
-        print(f"Moved audio file to static directory: {static_path}")
+    # Check all possible audio paths
+    possible_paths = [
+        os.path.join('data/audio', filename),
+        os.path.join(AUDIO_DIR, filename),
+        # Add any additional mounted volume paths here
+        "/app/data/audio/" + filename,
+    ]
 
-    # Serve from static directory
-    return send_file(f'static/audio/{filename}')
+    for path in possible_paths:
+        if os.path.exists(path):
+            print(f"Serving audio from: {path}")
+            return send_file(path)
+
+    return jsonify({'error': 'Audio file not found'}), 404
 
 @app.route('/api/generate-from-transcript', methods=['POST'])
 @require_api_token

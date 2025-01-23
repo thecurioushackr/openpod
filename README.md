@@ -91,10 +91,45 @@ fly auth login
 fly launch
 ```
 
-4. Deploy the application:
+4. Set up environment variables:
+
+```bash
+# Generate a secure API token
+openssl rand -hex 32
+
+# Set it in Fly.io
+fly secrets set API_TOKEN=your_generated_token
+```
+
+5. Create a volume for audio files:
+
+```bash
+fly volumes create audio_data --size 1
+```
+
+6. Deploy the application:
 
 ```bash
 fly deploy
+```
+
+Your API will be available at:
+
+- Web UI: `https://your-app.fly.dev`
+- API Endpoint: `https://your-app.fly.dev/api/generate-from-transcript`
+
+Make sure to include your API token in requests:
+
+```bash
+curl -X POST \
+  https://your-app.fly.dev/api/generate-from-transcript \
+  -H 'Authorization: Bearer your_api_token' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "transcript": "Your transcript here",
+    "podcast_name": "My Podcast",
+    "google_key": "your_google_api_key"
+  }'
 ```
 
 ### Project Structure
