@@ -24,10 +24,17 @@ export default defineConfig({
         target: "http://localhost:8080",
         changeOrigin: true,
       },
+      "/static": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
     },
   },
   build: {
     sourcemap: true,
+    outDir: "static",
+    assetsDir: "assets",
+    emptyOutDir: true,
   },
   clearScreen: false,
   logLevel: "info",

@@ -1,4 +1,25 @@
-# Use Python 3.11 slim image
+# Use Node.js for frontend build
+FROM node:20-slim as frontend-builder
+
+# Install bun
+RUN npm install -g bun
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lockb ./
+
+# Install dependencies
+RUN bun install
+
+# Copy frontend source
+COPY . .
+
+# Build frontend
+RUN bun run build
+
+# Use Python for the main application
 FROM python:3.11-slim
 
 # Set working directory
@@ -7,20 +28,8 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    curl \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Node.js and npm
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g bun
-
-# Copy package files
-COPY package.json bun.lockb ./
-
-# Install frontend dependencies
-RUN bun install
 
 # Copy Python requirements
 COPY requirements.txt .
@@ -28,18 +37,17 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
+# Copy application files
 COPY . .
 
-# Build frontend
-RUN bun run build
+# Copy built frontend from frontend-builder
+COPY --from=frontend-builder /app/static ./static
 
-# Create static directory and copy build files
-RUN mkdir -p static && \
-    cp -r dist/* static/
+# Create necessary directories
+RUN mkdir -p static/audio static/transcripts data/audio data/transcripts
 
 # Expose port
 EXPOSE 8080
 
-# Start the application
+# Run the application
 CMD ["python", "app.py"]
